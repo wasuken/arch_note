@@ -1,0 +1,58 @@
+  - name: arch_note
+    hosts: all
+    become: true
+    tasks:
+      - name: .emacs.d file exists
+        stat: path=/home/burden/.emacs.d
+        register: em
+      - name: rbenv file exists
+        stat: path=/home/burden/rbenv
+        register: rb
+      - name: ruby-build file exists
+        stat: path=/home/burden/ruby-build
+        register: rbuild
+      - name: note pc in arch_linux setting
+        pacman: pkg={{ item }} state=installed
+        with_items:
+          - git
+          - dolphin
+          - emacs
+          - arduino
+          - fcitx
+          - fcitx-mozc
+          - gdm
+          - w3m
+          - go
+          - zsh
+          - gauche
+          - pulseaudio
+      - name: git config
+        command: "git -- git config --global user.name \"wasuken\""
+        command: "git config --global user.email \"wevorence@gmail.com\""
+      - name: move .emacs.d
+        when: em.stat.exists
+        command: "mv -f /home/burden/.emacs.d /home/burden/.emacs.d.bak"
+      - name: .emacs.d
+        when: not em.stat.exists
+        git:
+          repo: https://github.com/wasuken/.emacs.d
+          dest: "/home/burden/.emacs.d"
+      - name: install rbenv
+        when: not rb.stat.exists
+        git:
+          repo: https://github.com/sstephenson/rbenv.git
+          dest: "/home/burden/rbenv"
+      - name: install ruby-build
+        when: not rbuild.stat.exists
+        git:
+          repo: https://github.com/sstephenson/ruby-build.git
+          dest: "/home/burden/ruby-build"
+      - name: set env
+        command:
+          blockinfile:
+            dest: /home/burden/.bash_profile
+            insertafter: '^PATH=\$PATH:\$HOME/bin$'
+            content: |
+              export RBENV_ROOT=/usr/local/rbenv
+              export PATH="$RBENV_ROOT/bin:$PATH"
+              eval "$(rbenv init -)"
